@@ -1,129 +1,229 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>RH5 Trainer Booking System</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  body{font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;background:#f8fafc;color:#1e293b;}
-  .touch-btn{min-height:44px;padding:10px;}
-  .day-cell{min-height:72px;border-radius:.5rem;}
-  .dot{width:12px;height:12px;border-radius:9999px;display:inline-block;margin-left:6px;}
-  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
-  .modal-full{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center;z-index:50;}
-  .modal-card{width:100%;border-top-left-radius:16px;border-top-right-radius:16px;max-height:92vh;overflow:auto;background:#fff;}
-  .sticky-cta{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px;background:linear-gradient(180deg,rgba(255,255,255,.6),#fff);backdrop-filter:blur(6px);}
-  canvas{width:100% !important;height:auto !important;}
-  .weekend{background-color:#f1f5f9;}
-  .cal-nav-btn{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;}
-  .required::after{content:" *";color:#dc2626;font-weight:600;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ASI - Account Strategy Intelligence</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Prompt', 'sans-serif'], // กำหนด Font หลัก
+                    },
+                    colors: {
+                        'primary': '#0D47A1', // สีน้ำเงินเข้มสำหรับ Primary (ธนาคาร)
+                        'secondary': '#E3F2FD', // สีฟ้าอ่อนสำหรับ Background
+                        'risk-critical': '#D32F2F',
+                        'risk-high': '#FFC107',
+                        'risk-medium': '#0288D1',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
-<div class="max-w-3xl mx-auto p-4 pb-32">
-  <header class="flex justify-between items-center mb-4">
-    <div>
-      <h1 class="text-lg font-semibold">RH5 Trainer Booking System</h1>
-      <p class="text-xs text-slate-500">บล็อค=ทั้งวัน, การจองสั้น=วันนั้นไม่ว่าง</p>
-    </div>
-    <div class="flex gap-2 items-center">
-      <div id="userArea" class="text-sm"></div>
-      <button id="logoutBtn" class="hidden bg-gray-200 text-slate-700 rounded-md px-3 touch-btn">Logout</button>
-    </div>
-  </header>
+<body class="bg-secondary min-h-screen flex font-sans">
+    
+    <nav id="sidebar" class="hidden md:flex flex-col w-20 bg-primary text-white shadow-2xl p-4 sticky top-0 h-screen transition-all duration-300">
+        <div class="text-center font-bold text-xl mb-8">ASI</div>
+        <a href="#" onclick="showPanel('panel-input')" class="nav-item group flex flex-col items-center p-3 rounded-xl hover:bg-white hover:text-primary transition duration-200 mb-4 bg-white/10 active" title="วิเคราะห์ (หน้าหลัก)">
+            <i class="fas fa-home text-xl"></i>
+            <span class="text-xs mt-1">วิเคราะห์</span>
+        </a>
+        <a href="#" onclick="showPanel('panel-search')" class="nav-item group flex flex-col items-center p-3 rounded-xl hover:bg-white hover:text-primary transition duration-200 mb-4" title="ค้นหาเคส">
+            <i class="fas fa-search text-xl"></i>
+            <span class="text-xs mt-1">ค้นหา</span>
+        </a>
+        <a href="#" onclick="showPanel('panel-report')" class="nav-item group flex flex-col items-center p-3 rounded-xl hover:bg-white hover:text-primary transition duration-200 mb-4" title="รายงาน (Admin)">
+            <i class="fas fa-chart-line text-xl"></i>
+            <span class="text-xs mt-1">รายงาน</span>
+        </a>
+    </nav>
 
-  <!-- Dashboard -->
-  <section class="space-y-3 mb-4">
-    <!-- Card 1: Pie by zone -->
-    <div class="bg-white rounded-lg shadow p-3">
-      <h3 class="font-medium mb-2">สัดส่วนการจองตามโซน (เดือนปัจจุบัน)</h3>
-      <div class="flex gap-4 flex-wrap">
-        <canvas id="pieZones" class="flex-1" height="180"></canvas>
-        <div id="pieLegend" class="flex-1 text-sm"></div>
-      </div>
-    </div>
-    <!-- Card 2: Total bookings -->
-    <div class="bg-white rounded-lg shadow p-3 grid grid-cols-2 gap-2">
-      <div class="p-3 bg-slate-50 rounded text-center">
-        <div class="text-slate-500 text-sm">Bookings This Month</div>
-        <div id="totalMonth" class="text-xl font-semibold mt-1">0</div>
-      </div>
-      <div class="p-3 bg-slate-50 rounded text-center">
-        <div class="text-slate-500 text-sm">Bookings This Year</div>
-        <div id="totalYear" class="text-xl font-semibold mt-1">0</div>
-      </div>
-    </div>
-    <!-- Card 3: Total participants -->
-    <div class="bg-white rounded-lg shadow p-3 grid grid-cols-2 gap-2">
-      <div class="p-3 bg-slate-50 rounded text-center">
-        <div class="text-slate-500 text-sm">Participants This Month</div>
-        <div id="participantsMonth" class="text-xl font-semibold mt-1">0</div>
-      </div>
-      <div class="p-3 bg-slate-50 rounded text-center">
-        <div class="text-slate-500 text-sm">Participants This Year</div>
-        <div id="participantsYear" class="text-xl font-semibold mt-1">0</div>
-      </div>
-    </div>
-  </section>
+    <main class="flex-grow p-4 md:p-8 pb-20 md:pb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Account Strategy Intelligence (ASI)</h1>
+        
+        <div id="panel-input" class="panel active">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-semibold text-primary mb-4">เริ่มต้นวิเคราะห์ลูกค้าใหม่</h2>
+                
+                <div class="flex justify-between items-center mb-6">
+                    <div class="text-center w-1/4">
+                        <div class="w-8 h-8 mx-auto rounded-full bg-primary text-white flex items-center justify-center font-bold">1</div>
+                        <p class="text-sm mt-1">พนักงาน</p>
+                    </div>
+                    <div class="text-center w-1/4">
+                        <div class="w-8 h-8 mx-auto rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold">2</div>
+                        <p class="text-sm mt-1">ส่วนตัว/ครอบครัว</p>
+                    </div>
+                    <div class="text-center w-1/4">
+                        <div class="w-8 h-8 mx-auto rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold">3</div>
+                        <p class="text-sm mt-1">การเงิน/ธุรกิจ</p>
+                    </div>
+                    <div class="text-center w-1/4">
+                        <div class="w-8 h-8 mx-auto rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold">4</div>
+                        <p class="text-sm mt-1">ผลลัพธ์</p>
+                    </div>
+                </div>
 
-  <!-- Calendar -->
-  <section class="bg-white rounded-lg shadow p-3 mb-4">
-    <div class="flex justify-between items-center mb-2">
-      <div class="flex items-center gap-2">
-        <button id="prevMonth" class="cal-nav-btn bg-slate-100 touch-btn">‹</button>
-        <div id="monthLabel" class="font-semibold text-sm"></div>
-        <button id="nextMonth" class="cal-nav-btn bg-slate-100 touch-btn">›</button>
-      </div>
-      <div class="text-xs text-slate-500">แตะวันที่เพื่อดูรายละเอียด</div>
-    </div>
-    <div class="text-xs text-slate-600 mb-2 grid grid-cols-7 gap-1 text-center font-semibold">
-      <div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div>
-    </div>
-    <div id="calendar" class="calendar-grid"></div>
-    <div class="mt-3 text-xs text-slate-600 flex flex-wrap gap-3">
-      <div class="inline-flex items-center"><span class="dot bg-red-500"></span>ไม่ว่าง</div>
-      <div class="inline-flex items-center"><span class="dot bg-yellow-400"></span>บล็อค (ทั้งวัน)</div>
-      <div class="inline-flex items-center"><span class="dot bg-slate-400"></span>เสาร์-อาทิตย์</div>
-    </div>
-  </section>
+                <form id="analysis-form">
+                    <div id="step-1" class="form-step">
+                        <h3 class="text-xl font-medium mb-4">ขั้นตอนที่ 1: ข้อมูลพนักงาน</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="emp-name" placeholder="ชื่อพนักงาน" class="input-field" required>
+                            <input type="text" id="emp-id" placeholder="รหัสพนักงาน (ใช้ล็อคเคส)" class="input-field" required>
+                            <input type="text" id="emp-rh" placeholder="เขต (RH)" class="input-field">
+                            <input type="text" id="emp-zone" placeholder="โซน" class="input-field">
+                        </div>
+                        <button type="button" onclick="nextStep(2)" class="btn-primary mt-6">ถัดไป <i class="fas fa-arrow-right ml-2"></i></button>
+                    </div>
+                    
+                    <div id="step-2" class="form-step hidden">
+                        <h3 class="text-xl font-medium mb-4">ขั้นตอนที่ 2: ข้อมูลส่วนตัวและครอบครัว</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="cust-name" placeholder="ชื่อลูกค้า" class="input-field" required>
+                            <input type="number" id="cust-age" placeholder="อายุลูกค้า" class="input-field" required>
+                            <input type="text" id="cust-job" placeholder="อาชีพ (เช่น พนักงานบริษัท, เจ้าของกิจการ)" class="input-field" required>
+                            <input type="number" id="cust-income" placeholder="รายได้ต่อเดือน (บาท)" class="input-field" required>
+                            <div class="md:col-span-2 flex items-center">
+                                <input type="checkbox" id="fam-has-child" class="mr-2 h-5 w-5 text-primary rounded border-gray-300 focus:ring-primary">
+                                <label for="fam-has-child" class="text-gray-700">มีบุตรที่ต้องดูแล</label>
+                            </div>
+                            <input type="text" id="fam-child-ages" placeholder="อายุบุตร (คั่นด้วยคอมม่า เช่น 5, 10, 15)" class="input-field md:col-span-2">
+                        </div>
+                        <button type="button" onclick="prevStep(1)" class="btn-secondary mr-4 mt-6"><i class="fas fa-arrow-left mr-2"></i> ย้อนกลับ</button>
+                        <button type="button" onclick="nextStep(3)" class="btn-primary mt-6">ถัดไป <i class="fas fa-arrow-right ml-2"></i></button>
+                    </div>
 
-  <!-- Sticky CTA -->
-  <div class="sticky-cta">
-    <div class="max-w-3xl mx-auto px-4">
-      <div class="flex gap-3">
-        <button id="ctaBooking" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md touch-btn">จองคิววิทยากร</button>
-        <button id="btnViewFilters" class="w-12 bg-slate-100 rounded-md touch-btn">⚙️</button>
-      </div>
+                    <div id="step-3" class="form-step hidden">
+                        <h3 class="text-xl font-medium mb-4">ขั้นตอนที่ 3: ข้อมูลการเงิน ธุรกิจ และประกันที่มีอยู่</h3>
+                        <p class="font-semibold mb-2 text-primary">หนี้สิน (Outstanding Balance)</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <input type="number" id="fin-home" placeholder="หนี้กู้บ้าน" class="input-field">
+                            <input type="number" id="fin-car" placeholder="หนี้กู้รถ" class="input-field">
+                            <input type="number" id="fin-personal" placeholder="หนี้ส่วนบุคคล" class="input-field">
+                        </div>
+
+                        <p class="font-semibold mb-2 text-primary">สินทรัพย์ (มูลค่าปัจจุบัน)</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <input type="number" id="fin-saving" placeholder="ออมทรัพย์/กระแสรายวัน" class="input-field">
+                            <input type="number" id="fin-fixed" placeholder="เงินฝากประจำ" class="input-field">
+                            <input type="number" id="fin-fund" placeholder="กองทุน/หุ้น/สินทรัพย์ลงทุน" class="input-field">
+                        </div>
+                        
+                        <p class="font-semibold mb-2 text-primary">ข้อมูลอื่นๆ</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <input type="number" id="biz-share" placeholder="สัดส่วนหุ้นในธุรกิจ (%)" class="input-field">
+                            <input type="text" id="policies-premium" placeholder="เบี้ยประกันรวมต่อปี (บาท)" class="input-field">
+                        </div>
+
+                        <button type="button" onclick="prevStep(2)" class="btn-secondary mr-4"><i class="fas fa-arrow-left mr-2"></i> ย้อนกลับ</button>
+                        <button type="submit" class="btn-success">วิเคราะห์ความเสี่ยง <i class="fas fa-brain ml-2"></i></button>
+                    </div>
+
+                    <div id="step-4" class="form-step hidden">
+                        <h3 class="text-xl font-medium mb-4">ขั้นตอนที่ 4: ผลการวิเคราะห์ความเสี่ยง</h3>
+                        <div id="analysis-result-output" class="p-4 bg-gray-50 rounded-lg">
+                            <p class="text-gray-500">กรุณากรอกข้อมูลเพื่อเริ่มการวิเคราะห์</p>
+                        </div>
+                        <button type="button" onclick="prevStep(3)" class="btn-secondary mt-6"><i class="fas fa-arrow-left mr-2"></i> แก้ไขข้อมูล</button>
+                        <button type="button" id="save-case-btn" class="btn-primary mt-6 ml-4" disabled>บันทึกเคส <i class="fas fa-save ml-2"></i></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="panel-search" class="panel hidden">
+            <h2 class="text-2xl font-semibold text-primary mb-4">ค้นหาและจัดการเคสลูกค้า</h2>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <p class="text-sm text-gray-500 mb-2">ค้นหาด้วยชื่อลูกค้า, รหัสพนักงาน หรือ **รหัสที่ปรึกษา** เพื่อดูเคสทั้งหมด</p>
+                <input type="text" id="search-input" placeholder="ค้นหาด้วยชื่อลูกค้า หรือรหัสพนักงาน/รหัสที่ปรึกษา" class="input-field w-full mb-4">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ลูกค้า</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">พนักงาน (รหัส)</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RH</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ความเสี่ยง</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ความเห็น</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="case-list-body" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="panel-report" class="panel hidden">
+            <h2 class="text-2xl font-semibold text-primary mb-4">รายงานสรุปและการจัดการระบบ (Admin)</h2>
+            <div id="admin-login-prompt" class="bg-white p-6 rounded-xl shadow-lg max-w-sm mx-auto">
+                <p class="text-lg font-medium mb-4 text-center">ต้องใช้รหัสพิเศษเพื่อเข้าถึงส่วนนี้</p>
+                <input type="password" id="admin-passcode-input" placeholder="ใส่รหัส 4 หลัก" class="input-field w-full mb-4 text-center tracking-widest" maxlength="4">
+                <button onclick="checkAdminPasscode()" class="btn-primary w-full">เข้าสู่ระบบ</button>
+            </div>
+            
+            <div id="report-content" class="hidden">
+                </div>
+        </div>
+
+        <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden p-4 z-50">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-primary text-white p-4 flex justify-between items-center rounded-t-xl">
+                    <h2 class="text-xl font-bold" id="modal-cust-name"></h2>
+                    <button onclick="closeModal('profile-modal')" class="text-2xl hover:text-red-300"><i class="fas fa-times"></i></button>
+                </div>
+                
+                <div id="profile-content" class="p-6">
+                    <div class="mt-8">
+                        <h3 class="text-xl font-medium mb-3 border-b pb-2">ความเห็นและคำแนะนำจากที่ปรึกษา</h3>
+                        <div id="comments-list" class="space-y-4 mb-4">
+                            </div>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <input type="text" id="comment-author" placeholder="ชื่อที่ปรึกษา" class="input-field w-full mb-2">
+                            <textarea id="comment-text" rows="3" placeholder="เพิ่มคำแนะนำ/ความเห็น" class="input-field w-full mb-2"></textarea>
+                            <button onclick="addComment()" class="btn-primary"><i class="fas fa-comment-dots mr-2"></i> ส่งความเห็น</button>
+                            <div class="text-xs text-red-500 mt-1">**หมายเหตุ:** การส่งความเห็นไม่จำเป็นต้องล็อกอิน แต่ต้องกรอกชื่อ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="mobile-nav" class="fixed bottom-0 left-0 right-0 bg-white shadow-2xl md:hidden flex justify-around border-t border-gray-200 z-40">
+        <a href="#" onclick="showPanel('panel-input')" class="nav-item flex flex-col items-center p-2 text-primary hover:bg-gray-100 w-1/3">
+            <i class="fas fa-home text-xl"></i>
+            <span class="text-xs">วิเคราะห์</span>
+        </a>
+        <a href="#" onclick="showPanel('panel-search')" class="nav-item flex flex-col items-center p-2 text-gray-500 hover:bg-gray-100 w-1/3">
+            <i class="fas fa-search text-xl"></i>
+            <span class="text-xs">ค้นหา</span>
+        </a>
+        <a href="#" onclick="showPanel('panel-report')" class="nav-item flex flex-col items-center p-2 text-gray-500 hover:bg-gray-100 w-1/3">
+            <i class="fas fa-chart-line text-xl"></i>
+            <span class="text-xs">รายงาน</span>
+        </a>
     </div>
-  </div>
-</div>
-
-<script>
-// ====================== DATA & SESSION ======================
-const SESSION_KEY='rh5_session', USERS_KEY='rh5_users', BOOKINGS_KEY='rh5_bookings';
-const AUTOLOGOUT_MINUTES=30;
-const ZONES=['ราชบุรี','สุราษฎร์ธานี','ภูเก็ต','หาดใหญ่','สมุทรสาคร'];
-
-// seed users & bookings
-function seedData(){
-  if(!localStorage.getItem(USERS_KEY)){
-    const users=[
-      {username:'admin',password:'admin123',role:'admin',displayName:'Administrator'},
-      {username:'staff1',password:'staff123',role:'staff',displayName:'Staff Jintana'},
-      {username:'lect1',password:'lect123',role:'lecturer',displayName:'Lecturer Somsak'}
-    ];
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  }
-  if(!localStorage.getItem(BOOKINGS_KEY)){
-    const now=new Date(); const yyyy=now.getFullYear(); const mm=String(now.getMonth()+1).padStart(2,'0');
-    const bookings=[
-      {id:'b1',start:`${yyyy}-${mm}-05T10:00`,end:`${yyyy}-${mm}-05T13:00`,zone:'ราชบุรี',groups:['BM'],trainingType:'F2F',topic:'Training A',purpose:'อบรม A',speaker:'อ.อาร์ม',contact:{name:'สายฝน',position:'AM',phone:'0812345001'},status:'accepted',createdBy:'staff1',participants:10},
-      {id:'blk1',start:`${yyyy}-${mm}-25T00:00`,end:`${yyyy}-${mm}-25T23:59`,zone:null,groups:[],trainingType:'F2F',topic:'Maintenance',purpose:'System maintenance',speaker:'',contact:{name:'Admin',position:'',phone:''},status:'blocked',createdBy:'admin',participants:0}
-    ];
-    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
-  }
-}
-seedData();
-function getBookings
+    
+    <script src="storage.js"></script>
+    <script src="auth.js"></script>
+    <script src="analysis.js"></script>
+    <script src="ui.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
